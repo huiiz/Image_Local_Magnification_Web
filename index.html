@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <!-- import CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- import Vue before Element -->
+    <script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+    <!-- import JavaScript -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <title>Pan-Sharping实验结果对比</title>
+    <style>
+        .select {
+            width: 60%;
+        }
+
+        .image-container {
+            position: relative;
+            /*display: inline-block;*/
+        }
+
+        .draw,
+        .crop {
+            z-index: 10;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .image {
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .rectangle {
+            position: relative;
+
+            /*background-color: rgba(0, 0, 255, 0.3);*/
+            display: none;
+        }
+        .copyright {
+            text-align: center;
+            font-size: small;
+            color: gray;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .cLink{
+            text-decoration: none;
+            color: inherit;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <el-container class="content">
+            <el-header class="header" style="text-align: center;">
+                <h2>Pan-Sharping实验结果对比</h2>
+            </el-header>
+            <el-main style="text-align: center; ">
+                <div>
+                    <el-row :gutter="2">
+                        <el-col :span="6">
+                            <div class="grid-content bg-purple">
+                                <el-card class="box-card">
+                                    <el-form @submit.native.prevent>
+                                        <el-form-item label="显示框的数量">
+                                            <el-radio-group v-model="boxCount">
+                                                <el-radio-button label="1"></el-radio-button>
+                                                <el-radio-button label="2"></el-radio-button>
+                                                <el-radio-button label="3"></el-radio-button>
+                                                <el-radio-button label="4"></el-radio-button>
+                                            </el-radio-group>
+                                        </el-form-item>
+                                    </el-form>
+                                </el-card>
+                            </div>
+                        </el-col>
+                        <el-col :span="5">
+                            <div class="grid-content bg-purple">
+                                <el-card class="box-card">
+                                    <el-form @submit.native.prevent>
+                                        <el-form-item>
+                                            <el-form-item label="放大倍数">
+                                                <el-select v-model="ratio" placeholder="请选择" class="select">
+                                                    <el-option v-for="item in ratioOptions" :key="item.value"
+                                                        :label="item.label" :value="item.value">
+                                                    </el-option>
+                                                </el-select>
+                                            </el-form-item>
+                                    </el-form></el-card>
+                            </div>
+                        </el-col>
+                        <el-col :span="13">
+                            <div class="grid-content bg-purple">
+                                <el-card class="box-card" style="padding: 0;">
+                                    <el-row>
+                                        <el-col :span="8">
+                                            <el-card class="box-card">
+                                                <el-form @submit.native.prevent>
+                                                    <el-form-item>
+                                                        <el-form-item label="选择设置框">
+                                                            <el-select v-model="selectedBox" placeholder="请选择"
+                                                                class="select">
+                                                                <el-option v-for="item in boxSettings" :key="item"
+                                                                    :label="item+1" :value="item+1">
+                                                                </el-option>
+                                                            </el-select>
+                                                        </el-form-item>
+                                                </el-form></el-card>
+                                        </el-col>
+                                        <div v-for="box in boxSettings">
+                                            <div v-if="(box+1)==selectedBox">
+                                                <el-col :span="10">
+                                                    <el-card class="box-card">
+                                                        <el-form @submit.native.prevent>
+
+                                                            <el-form-item label="位置">
+                                                                <el-select v-model="positionList[box]" class="select"
+                                                                    placeholder="请选择">
+                                                                    <el-option v-for="(name, i) in positionOptions"
+                                                                        :key="i" :label="name" :value="positionList[i]">
+                                                                    </el-option>
+                                                                </el-select>
+                                                            </el-form-item>
+                                                        </el-form></el-card>
+
+                                                </el-col>
+                                                <el-col :span="6">
+                                                    <el-card class="box-card">
+                                                        <el-form @submit.native.prevent>
+                                                            <el-form-item label="颜色">
+                                                                <el-color-picker
+                                                                    v-model="colorList[box]"></el-color-picker>
+                                                            </el-form-item>
+                                                        </el-form>
+                                                    </el-card>
+                                                </el-col>
+                                            </div>
+
+                                        </div>
+
+                                    </el-row>
+                                </el-card>
+                            </div>
+                        </el-col>
+
+                    </el-row>
+                </div>
+                <br>
+                <el-row>
+                    <el-col :span="12">
+                        <el-button type="primary" @click="() => {handleClick(1)}">选择第一张图片</el-button>
+                        <br>
+                        <br>
+                        <div>
+                            <el-card class="box-card" style="width: 95%;">
+                                <div class="image-container">
+                                    <div class="crop" v-for="index in boxSettings" v-if="yes">
+                                        <div class="crop-box" :ref="() => {getCropRef(index + 1)}" :style="getcroppedImageStyle(1, index)"  v-if="boxCount>index"></div>
+                                        <!-- <div class="crop-box" ref="crop1" :style="croppedImageStyle(1, 0)"></div>
+                                        <div class="crop-box" ref="crop2" :style="croppedImageStyle(1, 1)"></div>
+                                        <div class="crop-box" ref="crop3" :style="croppedImageStyle(1, 2)"></div>
+                                        <div class="crop-box" ref="crop4" :style="croppedImageStyle(1, 3)"></div> -->
+                                    </div>
+                                    <div class="draw" @mousedown="startDrag" v-for="index in boxSettings" v-if="yes">
+                                        <div :id="getRecRef(index + 1)" class="rectangle" :ref="getRecRef(index + 1)" :style="getRecStyle(index + 1)"  v-if="boxCount>index"></div>
+                                        <!-- <div id="rec1" class="rectangle" ref="rec1" :style="recStyle(1)"></div>
+                                        <div id="rec2" class="rectangle" ref="rec2" :style="recStyle(2)"></div>
+                                        <div id="rec3" class="rectangle" ref="rec3" :style="recStyle(3)"></div>
+                                        <div id="rec4" class="rectangle" ref="rec4" :style="recStyle(4)"></div> -->
+                                    </div>
+                                    <el-image :src="imgPath1" class="image" ref="img1" />
+                                </div>
+                            </el-card>
+                        </div>
+                    </el-col>
+
+                    <el-col :span="12">
+                        <el-button type="primary" @click="() => {handleClick(2)}">选择第二张图片</el-button>
+                        <br>
+                        <br>
+                        <div>
+                            <el-card class="box-card" style="width: 95%;">
+                                <div class="image-container">
+                                    <div class="crop" v-for="index in boxSettings" v-if="yes">
+                                        <div class="crop-box" :ref="() => {getCropRef(index + 5)}" :style="getcroppedImageStyle(2, index)" v-if="boxCount>index"></div>
+                                        <!-- <div class="crop-box" ref="crop5" :style="croppedImageStyle(2, 0)"></div>
+                                        <div class="crop-box" ref="crop6" :style="croppedImageStyle(2, 1)"></div>
+                                        <div class="crop-box" ref="crop7" :style="croppedImageStyle(2, 2)"></div>
+                                        <div class="crop-box" ref="crop8" :style="croppedImageStyle(2, 3)"></div> -->
+                                    </div>
+                                    <div class="draw"  v-for="index in boxSettings" v-if="yes">
+                                        <div :id="getRecRef(index + 5)" class="rectangle" :ref="getRecRef(index + 5)" :style="getRecStyle(index + 1)"  v-if="boxCount>index"></div>
+                                        <!-- <div id="rec1" class="rectangle" ref="rec5" :style="recStyle(1)"></div>
+                                        <div id="rec2" class="rectangle" ref="rec6" :style="recStyle(2)"></div>
+                                        <div id="rec3" class="rectangle" ref="rec7" :style="recStyle(3)"></div>
+                                        <div id="rec4" class="rectangle" ref="rec8" :style="recStyle(4)"></div> -->
+                                    </div>
+                                    <el-image :src="imgPath2" class="image" ref="img2" />
+                                </div>
+                            </el-card>
+
+                        </div>
+                    </el-col>
+                </el-row>
+            </el-main>
+            <el-footer class="copyright">
+                <div>Copyright © 2024 SmartDSP. All Rights Received By <a href="https://xmu-smartdsp.github.io/" target="_blank" class="cLink">SmartDSP</a>. Designed By <a href="https://www.huii.top/" target="_blank" class="cLink">HUII</a>.</div>
+                <div>Version 1.0.0  Update Date: 2024-02-28</div>
+            </el-footer>
+        </el-container>
+    </div>
+</body>
+
+<script>
+    new Vue({
+        el: '#app',
+        data: function () {
+            return {
+                boxCount: 1,
+                selectedBox: 1,
+                ratio: 2.5,
+                ratioOptions: [
+                    {
+                        value: 1,
+                        label: '1x'
+                    },
+                    {
+                        value: 1.5,
+                        label: '1.5x'
+                    },
+                    {
+                        value: 2,
+                        label: '2x'
+                    },
+                    {
+                        value: 2.5,
+                        label: '2.5x'
+                    },
+                    {
+                        value: 3,
+                        label: '3x'
+                    },
+                    {
+                        value: 3.5,
+                        label: '3.5x'
+                    },
+                    {
+                        value: 4,
+                        label: '4x'
+                    },
+                    {
+                        value: 4.5,
+                        label: '4.5x'
+                    },
+                    {
+                        value: 5,
+                        label: '5x'
+                    }
+                ],
+                imgPath1: 'https://xmu-smartdsp.github.io/logo.png',
+                imgPath2: 'https://xmu-smartdsp.github.io/logo.png',
+                positionOptions: {
+                    0: '左上',
+                    1: '右上',
+                    2: '左下',
+                    3: '右下'
+                },
+                positionList: [0, 1, 2, 3],
+                colorList: ['#ff4500', '#ff8c00', '#ffd700', '#90ee90'],
+                boxes: [
+                    [0, 0, 0, 0], // x, y, h, w
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                    [0, 0, 0, 0],
+                ],
+                dragging: false,
+                startX: 0,
+                startY: 0,
+                endX: 0,
+                endY: 0,
+                relativeStartX: 0,
+                relativeStartY: 0,
+                relativeEndX: 0,
+                relativeEndY: 0,
+                yes: false,
+            }
+        },
+        methods: {
+            handleClick(id) {
+                const input = document.createElement('input');
+                input.type = 'file';
+
+                // 当选择了图片时，将其转换为base64格式并更新到data属性中
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    console.log(file);
+                    if (!file || !file.type.startsWith('image')) {
+                        alert('只支持选择图片！');
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+
+                    reader.onloadend = () => {
+                        switch (id) {
+                            case 1:
+                                this.imgPath1 = reader.result;
+                                console.log(this.imgPath1);
+                                break;
+                            case 2:
+                                this.imgPath2 = reader.result;
+                                break;
+                        }
+                    };
+                };
+
+                input.click();
+                // this.getSize();
+            },
+            getSize() {
+                const img1 = this.$refs.img1.$el;
+                const img2 = this.$refs.img2.$el;
+                console.log(img1.clientHeight, img1.clientWidth);
+                // console.log(img2.width, img2.height);
+            },
+            startDrag(event) {
+                this.dragging = true;
+                console.log(event)
+                this.startX = event.clientX;
+                this.startY = event.clientY;
+
+                // 添加mousemove和mouseup事件监听
+                document.addEventListener('mousemove', this.draggingMove);
+                document.addEventListener('mouseup', this.stopDrag);
+            },
+            draggingMove(event) {
+                if (this.dragging) {
+                    this.endX = event.clientX;
+                    this.endY = event.clientY;
+                    const containerRect = this.$refs.img1.$el.getBoundingClientRect()
+
+                    this.endX = Math.min(Math.max(event.clientX, containerRect.left), containerRect.right);
+                    this.endY = Math.min(Math.max(event.clientY, containerRect.top), containerRect.bottom);
+
+                    // 更新选择框的样式
+
+
+                    // 计算相对于当前div的位置
+                    this.relativeStartX = this.startX - containerRect.left;
+                    this.relativeStartY = this.startY - containerRect.top;
+                    this.relativeEndX = this.endX - containerRect.left;
+                    this.relativeEndY = this.endY - containerRect.top;
+
+                    const x = Math.min(this.relativeStartX, this.relativeEndX);
+                    const y = Math.min(this.relativeStartY, this.relativeEndY);
+                    const w = Math.abs(this.relativeEndX - this.relativeStartX);
+                    const h = Math.abs(this.relativeEndY - this.relativeStartY);
+
+                    // this.boxes[this.selectedBox - 1] = [x, y, w, h];
+                    this.$set(this.boxes, this.selectedBox - 1, [x, y, w, h])
+
+                    const selectionBoxes = this.getSelectionBox();
+                    console.log(selectionBoxes)
+                    // 更新选择框的位置和大小
+                    for (const selectionBox of selectionBoxes) {
+                        selectionBox.style.display = 'block';
+                        selectionBox.style.left = `${x}px`;
+                        selectionBox.style.top = `${y}px`;
+                        selectionBox.style.width = `${w}px`;
+                        selectionBox.style.height = `${h}px`;
+                    }
+
+                }
+            },
+            stopDrag() {
+                this.dragging = false;
+
+                // 移除事件监听
+                document.removeEventListener('mousemove', this.draggingMove);
+                document.removeEventListener('mouseup', this.stopDrag);
+                /*
+                console.log('Selected area:', {
+                    startX: this.startX,
+                    startY: this.startY,
+                    endX: this.endX,
+                    endY: this.endY,
+                    relativeStartX: this.relativeStartX,
+                    relativeStartY: this.relativeStartY,
+                    relativeEndX: this.relativeEndX,
+                    relativeEndY: this.relativeEndY
+                });*/
+            },
+            getSelectionBox() {
+                //let selectionBox1, selectionBox2;
+                const selectionBox1 = this.$refs[`rec${this.selectedBox}`][0];
+                const selectionBox2 = this.$refs[`rec${this.selectedBox + 4}`][0];
+                /*switch (this.selectedBox) {
+                    case 1:
+                        {
+                            selectionBox1 = this.$refs.rec1;
+                            selectionBox2 = this.$refs.rec5;
+                        }
+                        break;
+                    case 2:
+                        {
+                            selectionBox1 = this.$refs.rec2;
+                            selectionBox2 = this.$refs.rec6;
+                        }
+                        break;
+                    case 3:
+                        {
+                            selectionBox1 = this.$refs.rec3;
+                            selectionBox2 = this.$refs.rec7;
+                        }
+                        break;
+                    case 4:
+                        {
+                            selectionBox1 = this.$refs.rec4;
+                            selectionBox2 = this.$refs.rec8;
+                        }
+                        break;
+                }*/
+                return [selectionBox1, selectionBox2];
+            },
+            getCropRef(id) {
+                return `crop${id}`;
+            },
+            getcroppedImageStyle(id, boxId) {
+                return this.croppedImageStyle(id, boxId);
+            },
+            getRecRef(id) {
+                return `rec${id}`;
+            },
+            getRecStyle(boxId) {
+                return this.recStyle(boxId);
+            },
+        },
+        computed: {
+            boxSettings() {
+                const boxes = []
+                for (let i = 0; i < this.boxCount; i++) {
+                    boxes.push(i);
+                }
+                return boxes;
+            },
+            croppedImageStyle() {
+                return function (id, boxId) {
+                    console.log(id, boxId);
+                    // if (!this.$refs[`img${id}`]) return;
+                    // console.log(this.$refs[`img${id}`]);
+                    const originalImage = id === 1 ? this.$refs.img1.$el : this.$refs.img2.$el;
+                    const scaledWidth = originalImage.clientWidth * this.ratio;
+                    const scaledHeight = originalImage.clientHeight * this.ratio;
+                    let boxPos
+                    switch (this.positionList[boxId]) {
+                        case 0:
+                            boxPos = {
+                                left: 0,
+                                top: 0
+                            }
+                            break;
+                        case 1:
+                            boxPos = {
+                                right: 0,
+                                top: 0
+                            }
+                            break;
+                        case 2:
+                            boxPos = {
+                                left: 0,
+                                bottom: 0
+                            }
+                            break;
+                        case 3:
+                            boxPos = {
+                                right: 0,
+                                bottom: 0
+                            }
+                            break;
+                    }
+                    const x = this.boxes[boxId][0];
+                    const y = this.boxes[boxId][1];
+                    const w = this.boxes[boxId][2];
+                    const h = this.boxes[boxId][3];
+                    //console.log(this.boxes[boxId][2] * this.ratio, this.boxes[boxId][3] * this.ratio);
+                    return {
+                        backgroundImage: `url(${this[`imgPath${id}`]})`,
+                        backgroundSize: `${scaledWidth}px ${scaledHeight}px`,
+                        //backgroundPosition: `-${this.boxes[boxId][2] * this.ratio}px -${this.boxes[boxId][3] * this.ratio}px`,
+                        backgroundPosition: `-${Math.min(x, x +w) * this.ratio}px -${Math.min(y, y+h) * this.ratio}px`,
+                        position: 'absolute',
+                        ...boxPos,
+                        width: `${w * this.ratio}px`,
+                        height: `${h * this.ratio}px`,
+                        border: `${w==0 || h==0 ? '0px' : '2px'} solid ${this.colorList[boxId]}`,
+                    };
+                }
+            },
+            croppedWidth() {
+                return Math.abs(this.relativeEndX - this.relativeStartX) * this.ratio;
+            },
+            croppedHeight() {
+                return Math.abs(this.relativeEndY - this.relativeStartY) * this.ratio;
+            },
+            recStyle() {
+                return function (boxId) {
+                    console.log(boxId);
+                    return {
+                        border: `2px solid ${this.colorList[boxId - 1]}`,
+                    }
+                }
+            }
+        },
+        watch: {
+            boxCount(newVal, oldVal) {
+                if (newVal < this.selectedBox) {
+                    this.selectedBox = newVal;
+                }
+            }
+        },
+        mounted() {
+            window.addEventListener('resize', this.getSize);
+            this.yes = true;
+        }
+    })
+</script>
+
+</html>
