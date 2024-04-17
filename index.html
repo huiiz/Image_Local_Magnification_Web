@@ -125,7 +125,7 @@
                                                                 <el-select v-model="positionList[box]" class="select"
                                                                     placeholder="请选择">
                                                                     <el-option v-for="(name, i) in positionOptions"
-                                                                        :key="i" :label="name" :value="positionList[i]">
+                                                                        :key="i" :label="name + positionList[i]" :value="positions[i]">
                                                                     </el-option>
                                                                 </el-select>
                                                             </el-form-item>
@@ -213,7 +213,7 @@
             </el-main>
             <el-footer class="copyright">
                 <div>Copyright © 2024 SmartDSP. All Rights Received By <a href="https://xmu-smartdsp.github.io/" target="_blank" class="cLink">SmartDSP</a>. Designed By <a href="https://www.huii.top/" target="_blank" class="cLink">HUII</a>.</div>
-                <div>Version 1.0.0  Update Date: 2024-02-28</div>
+                <div>Version 1.0.1  Update Date: 2024-04-17</div>
             </el-footer>
         </el-container>
     </div>
@@ -273,6 +273,7 @@
                     2: '左下',
                     3: '右下'
                 },
+                positions: [0, 1, 2, 3],
                 positionList: [0, 1, 2, 3],
                 colorList: ['#ff4500', '#ff8c00', '#ffd700', '#90ee90'],
                 boxes: [
